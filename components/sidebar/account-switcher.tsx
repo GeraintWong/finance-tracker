@@ -369,7 +369,7 @@ export function AccountSwitcher() {
                 </div>
                 <div className="flex justify-end">
                   <Button type="submit" disabled={!editAccountForm.formState.isValid || isLoading} className="bg-black hover:cursor-pointer">
-                    {isLoading ? 'Creating Account...' : 'Create Account'}
+                    {isLoading ? 'Saving Account...' : 'Save'}
                   </Button>
                 </div>
               </form>
