@@ -25,92 +25,110 @@ import {
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 
+interface AccountProps {
+    id: string;
+    name: string;
+    type: string;
+    plaidId: string | null;
+}
+
 const formSchema = z.object({
     name: z.string().min(1, "Account name is needed"),
     type: z.string().min(1, "Account type is needed"),
     plaidId: z.string().optional()
 })
 
-interface createAccountModalProps {
-    onAccountCreated: () => void,
+interface editAccountModalProps {
+    onAccountEdited: () => void,
     isOpen: boolean,
-    onOpenChange: (open: boolean) => void,
+    onOpenChange: (open: boolean) => void
+    accountToEdit: AccountProps | null,
     existingAccountNames: string[]
 }
 
-export function CreateAccountModal({
-    onAccountCreated,
+export function EditAccountModal({
+    onAccountEdited,
     isOpen,
     onOpenChange,
+    accountToEdit,
     existingAccountNames
-}: createAccountModalProps) {
+}: editAccountModalProps) {
 
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
-        defaultValues: {
-            name: "",
-            type: "",
-            plaidId: ""
-        }
     })
 
     const isLoading = form.formState.isSubmitting
 
-    useEffect(() => {
-        form.clearErrors("name")
-        if (existingAccountNames.includes(form.watch("name").trim().toLowerCase())) {
-            form.setError("name", {
-                type: "manual",
-                message: "An account with this name already exists"
-            })
-        }
-    }, [form.watch("name"), existingAccountNames, form])
 
     useEffect(() => {
+        if (accountToEdit && isOpen) {
+            form.reset({
+                name: accountToEdit.name,
+                type: accountToEdit.type,
+                plaidId: accountToEdit.plaidId || "",
+            })
+        }
         if (!isOpen) {
             form.reset();
             form.clearErrors();
         }
-    }, [isOpen, form]);
+    }, [accountToEdit, isOpen, form])
 
-    const handleNewAccount = async (values: z.infer<typeof formSchema>) => {
+    useEffect(() => {
+        if (accountToEdit && isOpen) {
+            const currentName = form.watch("name").trim().toLowerCase();
+            const originalName = accountToEdit.name.trim().toLowerCase();
 
-        if (existingAccountNames.includes(values.name.trim().toLowerCase())) {
-            toast.error("An account with this name already exists.");
+            const otherExistingNames = existingAccountNames.filter(
+                (name) => name !== originalName
+            );
+
+            if (otherExistingNames.includes(currentName)) {
+                form.setError("name", {
+                    type: "manual",
+                    message: "Another account with this name already exists.",
+                });
+            } else {
+                form.clearErrors("name");
+            }
+        }
+    }, [form.watch("name"), existingAccountNames, accountToEdit, isOpen, form]);
+
+    useEffect(() => {
+        if (accountToEdit && isOpen) {
+            form.reset({
+                name: accountToEdit.name,
+                type: accountToEdit.type
+            })
+        }
+    }, [accountToEdit, isOpen, form])
+
+    const handleEditAccount = async (values: z.infer<typeof formSchema>) => {
+        if (!accountToEdit) {
+            toast.error("No account selected for editing.");
             return;
         }
-
         try {
-            const response = await fetch('/api/accounts', {
-                method: "POST",
+            const response = await fetch(`/api/accounts/${accountToEdit.id}`, {
+                method: "PATCH",
                 headers: {
-                    "Content-type": "application/json"
+                    'Content-type': 'application/json',
                 },
                 body: JSON.stringify(values)
             })
 
             if (!response.ok) {
-                const errorData = await response.json();
-                console.error("Failed to create account:", errorData);
-                if (response.status === 409 && errorData.error) {
-                    form.setError("name", {
-                        type: "manual",
-                        message: errorData.error,
-                    });
-                    toast.error(errorData.error);
-                } else {
-                    toast.error(errorData.error || "Error creating account");
-                }
-                return;
+                console.error("Failed to update account:" + await response.json())
+                toast.error("Error updating account");
+                return
             }
-
             onOpenChange(false)
-            toast.success("Account has been created");
-            form.reset();
-            onAccountCreated();
+            toast.success("Account has been updated");
+            onAccountEdited()
         } catch (error) {
-            console.error("There was an error creating an account:", error)
-            toast.error("Error creating account");
+            console.error("There was an error updating an account:" + error)
+            toast.error("Error updating account");
         }
     }
 
@@ -118,13 +136,13 @@ export function CreateAccountModal({
         <Dialog open={isOpen} onOpenChange={onOpenChange}>
             <DialogContent>
                 <DialogHeader>
-                    <DialogTitle className="text-center">New Account</DialogTitle>
+                    <DialogTitle className="text-center">Edit Account</DialogTitle>
                     <DialogDescription className="text-center">
-                        Create a new account to track your transaction.
+                        Edit your account.
                     </DialogDescription>
                 </DialogHeader>
                 <Form {...form}>
-                    <form onSubmit={form.handleSubmit(handleNewAccount)}>
+                    <form onSubmit={form.handleSubmit(handleEditAccount)}>
                         <div className="grid gap-4 py-4">
                             <FormField
                                 control={form.control}
@@ -137,7 +155,6 @@ export function CreateAccountModal({
                                         <FormControl>
                                             <Input
                                                 id="name"
-                                                placeholder="e.g., Chase Bank, ASB Fund"
                                                 className="col-span-3"
                                                 {...field}
                                             />
@@ -157,19 +174,18 @@ export function CreateAccountModal({
                                         <FormControl>
                                             <Input
                                                 id="type"
-                                                placeholder="e.g., College Funds, Daily Expenses"
                                                 className="col-span-3"
-                                                {...field} 
+                                                {...field}
                                             />
                                         </FormControl>
                                         <FormMessage className="col-span-4" />
                                     </FormItem>
-                                )}
-                            />
+                                )}>
+                            </FormField>
                         </div>
                         <div className="flex justify-end">
                             <Button type="submit" disabled={!form.formState.isValid || isLoading || !!form.formState.errors.name} className="bg-black hover:cursor-pointer">
-                                {isLoading ? 'Creating Account...' : 'Create Account'}
+                                {isLoading ? 'Saving Account...' : 'Save'}
                             </Button>
                         </div>
                     </form>

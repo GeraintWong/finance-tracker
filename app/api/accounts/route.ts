@@ -4,8 +4,6 @@ import { accounts } from "@/db/schema";
 import { z } from 'zod'
 import { getAuth } from "@clerk/nextjs/server";
 import { eq, and } from "drizzle-orm";
-import { get } from "http";
-import { error } from "console";
 
 export const GET = async (req: NextRequest) => {
     try {
@@ -45,6 +43,20 @@ export const POST = async (req: NextRequest) => {
 
         const validatedBody = accountSchema.parse(body)
 
+        const existingAccount = await db.select()
+            .from(accounts)
+            .where(
+                and(
+                    eq(accounts.name, validatedBody.name),
+                    eq(accounts.userId, userId)
+                )
+            )
+            .limit(1)
+
+        if (existingAccount.length > 0) {
+            return NextResponse.json({ error: "An account with this name already exists" }, { status: 401 })
+        }
+
         const newAccount = await db.insert(accounts).values({
             name: validatedBody.name,
             type: validatedBody.type,
@@ -57,6 +69,7 @@ export const POST = async (req: NextRequest) => {
         if (error instanceof z.ZodError) {
             return NextResponse.json({ error: error.issues }, { status: 400 })
         }
+        console.error("Error in POST /api/accounts:", error);
         return new NextResponse("Internal Error", { status: 500 })
     }
 }

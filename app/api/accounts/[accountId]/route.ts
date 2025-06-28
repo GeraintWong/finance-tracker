@@ -4,8 +4,6 @@ import { accounts } from "@/db/schema";
 import { z } from 'zod'
 import { getAuth } from "@clerk/nextjs/server";
 import { eq, and } from "drizzle-orm";
-import { get } from "http";
-import { error } from "console";
 
 export const DELETE = async (req: NextRequest, { params }: { params: { accountId: string } }) => {
     try {
@@ -18,7 +16,8 @@ export const DELETE = async (req: NextRequest, { params }: { params: { accountId
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
         }
 
-        const accountsId = params.accountId
+        const awaitedParams = await params
+        const accountsId = awaitedParams.accountId
 
         const deletedAccount = await db.delete(accounts).where(
             and(
@@ -55,8 +54,8 @@ export const PATCH = async (req: NextRequest, { params }: { params: { accountId:
         if (!userId) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
         }
-
-        const accountsId = params.accountId
+        const awaitedParams = await params
+        const accountsId = awaitedParams.accountId
         const validatedBody = accountSchema.partial().parse(body)
 
         const updatedAccount = await db.update(accounts)

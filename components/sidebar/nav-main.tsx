@@ -17,6 +17,10 @@ import {
   SidebarMenuSubButton,
   SidebarMenuSubItem,
 } from "@/components/ui/sidebar"
+import {
+  AddTransactionModal
+} from "@/modals/add-transaction-modal"
+import { useState } from "react"
 
 export function NavMain({
   items,
@@ -32,6 +36,7 @@ export function NavMain({
     }[]
   }[]
 }) {
+  const [isAddTransactionOpen, setIsAddTransactionOpen] = useState(false);
   return (
     <SidebarGroup>
       <SidebarGroupLabel>Platform</SidebarGroupLabel>
@@ -52,17 +57,26 @@ export function NavMain({
                 </SidebarMenuButton>
               </CollapsibleTrigger>
               <CollapsibleContent>
-                <SidebarMenuSub>
+                <SidebarMenuSub className="hover:cursor-pointer">
                   {item.items?.map((subItem) => (
                     <SidebarMenuSubItem key={subItem.title}>
-                      <SidebarMenuSubButton asChild>
-                        <a href={subItem.url}>
+                      {subItem.title === "Add Transaction" ? (
+                        <SidebarMenuSubButton asChild onClick={() => setIsAddTransactionOpen(true)}>
                           <span>{subItem.title}</span>
-                        </a>
-                      </SidebarMenuSubButton>
+                        </SidebarMenuSubButton>
+                      ) : (
+                        <SidebarMenuSubButton asChild>
+                          <a href={subItem.url}>
+                            <span>{subItem.title}</span>
+                          </a>
+                        </SidebarMenuSubButton>
+                      )}
                     </SidebarMenuSubItem>
                   ))}
                 </SidebarMenuSub>
+                <AddTransactionModal
+                  isOpen={isAddTransactionOpen}
+                  onOpenChange={setIsAddTransactionOpen} />
               </CollapsibleContent>
             </SidebarMenuItem>
           </Collapsible>

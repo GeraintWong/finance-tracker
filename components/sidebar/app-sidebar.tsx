@@ -41,15 +41,15 @@ const data = {
       isActive: true,
       items: [
         {
-          title: "History",
+          title: "Overall",
+          url: "#",
+        },
+        {
+          title: "Categories",
           url: "#",
         },
         {
           title: "Add Transaction",
-          url: "#",
-        },
-        {
-          title: "Settings",
           url: "#",
         },
       ],
